@@ -9,8 +9,11 @@ import {
   Alert,
   Image,
   Text,
+  StyleSheet,
+
 } from 'react-native';
 
+import { Dropdown } from 'react-native-material-dropdown';
 import {
   FormLabel,
   FormValidationMessage
@@ -18,7 +21,7 @@ import {
 
 import Spinner from 'react-native-loading-spinner-overlay';
 
-import {Button, Badge } from 'react-native-elements';
+import {Button, Badge,  CheckBox } from 'react-native-elements';
 
 import {
   selectWyreAccountField,
@@ -29,19 +32,44 @@ import {
   uploadWyreAccountDocument
 } from '../../../../actions/actions/PaymentMethod/WyreAccount';
 
+import PrimeTrustInterface from '../../../../utils/PrimeTrust/provider';
+
 import Styles from '../../../../styles/index';
+import Colors from '../../../../globals/colors';
+import { FlatList } from 'react-native-gesture-handler';
 
 const formatURI = (uri) => (
   Platform.OS === 'android' ? uri : uri.replace('file://', '')
 );
 
-class KYCphotoAddress extends Component {
+//temporary code
+const styles = StyleSheet.create({
+  logo: {
+    width: 66,
+    height: 58,
+  },
+});
+
+
+
+class KYCidPhotoUploads extends Component {
   constructor(props) {
     super(props);
     this.state = {
       image: null,
       error: null,
+      documents: [],
+      isFetching: true
     };
+
+    if(PrimeTrustInterface.user === null) {
+      //redirect to  the  login page
+      console.log("redirecting to login page:");
+      this.props.navigation.navigate("KYCStart");
+    }
+    //load docs
+    this.getUploadedDocuments();
+    
   }
 
   handleSelect = () => {
@@ -59,17 +87,50 @@ class KYCphotoAddress extends Component {
     });
   };
 
+  getUploadedDocuments = () => {
+    this.isFetching = true;
+    
+    PrimeTrustInterface.getUploadedDocuments().then((retrievedDocuments) => {
+      this.setState({documents : retrievedDocuments.data.data});  
+      this.setState({isFetching : false});
+    });
+
+  }
+
   clearSelectedImage = () => {
     this.setState({
       image: null
     });
   }
 
-  handleUpload = () => {
-    this.props.uploadWyreAccountDocument(this.props.fieldId,
-      formatURI(this.state.image.uri), 'image/jpeg', this.clearSelectedImage);
+  handleUpload = async () => {
+
+    //console.log(this.state);
+    let contacts = await PrimeTrustInterface.getContacts();
+    
+    if(contacts.data.data[0] == undefined){
+      console.log("no contact");
+    } else {
+      console.log("state:",this.state.image);
+      let contact = contacts.data.data[0];
+      let document = await PrimeTrustInterface.sendDocument(contact.id,
+        this.state.documentType,
+        this.state.image);
+      if(document.success){
+        //document successfuly uploaded reset the page
+
+        //check if there are now the correct number of documents
+        this.clearSelectedImage();
+      } else {
+        let message = document.error[0].source.pointer + document.error[0].detail;
+        Alert.alert("There was a problem with your image", message );
+      }
+
+    }
   };
 
+
+  
   render() {
     const scaleFactorY = 2;
     const scalefatorX = 2;
@@ -89,7 +150,7 @@ class KYCphotoAddress extends Component {
             containerStyle={Styles.horizontalPaddingBox10}
           />
           <Badge
-            status="success"
+            status="primary"
             badgeStyle={ {scaleX: scalefatorX, scaleY: scaleFactorY } }
             containerStyle={Styles.horizontalPaddingBox10}
           />
@@ -101,24 +162,50 @@ class KYCphotoAddress extends Component {
         </View>
           <View style={styles.mainInputView}>
             <Spinner
-              visible={this.props.isFetching}
+              visible={this.state.isFetching}
               textContent="Loading..."
               textStyle={{ color: '#FFF' }}
             />
             <View>
               <Text style={styles.formLabel}>
                 Uploaded documents: &nbsp; &nbsp;
-                { this.props.field == null ? 0 : this.props.field.value.length}
+                { this.state.documents == null ? 0 : this.state.documents.length}
               </Text>
+            <FlatList data={this.state.documents} renderItem={({item}) => <View><Text>{item.attributes.label}</Text><Image style={styles.logo} source={{uri: item.attributes["file-url"]}}/></View>} />
             </View>
             {!this.state.image && (
+            <View>
+            <View style={styles.dropdownInput}>
+              <Dropdown
+                labelExtractor={(item) => item.value}
+                valueExtractor={(item) => item.value}
+                label="Select Document Type"
+                labelTextStyle={{ fontFamily: 'Avenir-Book'}}
+                labelFontSize={13}
+                data={[{value:'Drivers License Front'},{value:'Drivers License Back'},{value:'Identity Card Front'},{value:'Identity Card Back'},{value:'Passport'}]}
+                onChangeText={(value) => this.setState({ documentType: value })}
+                textColor={Colors.quaternaryColor}
+                selectedItemColor={Colors.quaternaryColor}
+                baseColor={Colors.quaternaryColor}
+                value={this.state.documentType == null? 'N/A': this.state.documentType}
+                inputContainerStyle={styles.dropdownInputContainer}
+                pickerStyle={{backgroundColor: Colors.tertiaryColor}}
+              />
+            </View>
+            <CheckBox
+              title='Contains Address'
+              value={true}
+              checked={this.state.containsAddress}
+              />
+              
               <View style={styles.buttonContainerBottom}>
                 <Button
                 titleStyle={Styles.whiteText}
                 buttonStyle={Styles.defaultButtonClearWhite}
-                  title=" DOCUMENT"
+                  title="UPLOAD DOCUMENT"
                   onPress={this.handleSelect}
                 />
+              </View>
               </View>
             )}
             {this.state.image && (
@@ -149,7 +236,7 @@ class KYCphotoAddress extends Component {
           buttonStyle={Styles.defaultButtonClearWhite}
             title="CHEAT TO NEXT SCREEN"
             onPress={()=>{
-              this.props.navigation.navigate("KYCEndInfoScreen")
+              this.props.navigation.navigate("KYCAddressInfo")
             }
             }
           />
@@ -170,7 +257,7 @@ const mapDispatchToProps = ({
 });
 
 export {
-  KYCphotoAddress
+  KYCfoto
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(KYCphotoAddress);
+export default connect(mapStateToProps, mapDispatchToProps)(KYCfoto);

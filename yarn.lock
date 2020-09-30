@@ -69,6 +69,7 @@
     jsesc "^2.5.1"
     lodash "^4.17.13"
     source-map "^0.5.0"
+
 "@babel/generator@^7.11.5", "@babel/generator@^7.11.6":
   version "7.11.6"
   resolved "https://registry.yarnpkg.com/@babel/generator/-/generator-7.11.6.tgz#b868900f81b163b4d464ea24545c61cbac4dc620"
@@ -11189,9 +11190,9 @@ react-native-vector-icons@^6.2.0:
     prop-types "^15.6.2"
     yargs "^13.2.2"
 
-"react-native-verus-light-client@git+https://github.com/michaeltout/react-native-verus-light-client":
+"react-native-verus-light-client@git+https://github.com/VerusCoin/react-native-verus-light-client":
   version "1.0.0"
-  resolved "git+https://github.com/VerusCoin/react-native-verus-light-client.git#227e36637b69ff60b0d1546a6f7eaca59777b071"
+  resolved "git+https://github.com/VerusCoin/react-native-verus-light-client#227e36637b69ff60b0d1546a6f7eaca59777b071"
   dependencies:
     react "16.9.0"
     react-native "0.61.5"
